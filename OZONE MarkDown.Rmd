@@ -1,0 +1,549 @@
+---
+title: "OZONE"
+author: "Hafid Pradipta"
+date: "December 4, 2017"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(MVN)
+library(readr)
+library(devtools)
+library(easyGgplot2)
+library(reshape2)
+library(ggplot2)
+library(psych)
+library(corrplot)
+library(rgl)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+#ozone dataset
+library(readr)
+onehr <- read_csv("C:/Users/Hafid Pradipta/OneDrive/STAT 520/dataset/Ozone/onehr.csv")
+head(onehr)
+
+### cleaning the data
+which(onehr$wsr0=="?")
+onehr[onehr=="?"]<-NA
+head(onehr==NA)
+onehrc<-na.omit(onehr)
+sum(length(which(is.na(onehrc))))
+
+library(MVN)
+class(onehrc)
+onehrc2<-onehrc[,-1]
+
+lapply(onehrc2,class) #because the missing value is ? therefore R record is as character, we want it as numeric
+
+write.table(onehrc2,file="C:/Users/Hafid Pradipta/OneDrive/Documentos/onehrc2.csv",sep=",",qmethod="double")
+head(onehrc2)
+```
+#only take the average of the temperature and the windspeed
+
+```{r}
+library(readr)
+onehrc2 <- read_csv("C:/Users/Hafid Pradipta/OneDrive/STAT 520/dataset/Ozone/onehrc2.csv")
+```
+
+# Descriptive statistics
+```{r}
+colnames(onehrc2)
+#windspeede at given time
+wsx<-onehrc2[,1:26]
+datawsx<-melt(wsx)
+ggplot(datawsx,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+
+#temperature at given time
+tx<-onehrc2[,27:52]
+datatx<-melt(tx)
+ggplot(datatx,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+
+
+
+#grouping
+#using average temperature and winspeed
+names(onehrc2)
+oneav<-onehrc2[,c(25,26,51:73)]
+
+
+#check normality of whole dataset
+uniNorm(oneav, type="SW")
+normtest<-uniNorm(oneav, type="SW")
+normtest
+
+#visualizatoin of normality dataset
+name<-colnames(oneav)
+namen<-colnames(oneav[1:23])
+normplot<-normtest$`Descriptive Statistics`[1:23,9:10]
+datanorm<-data.frame(namen,normplot)
+loadings.1 <- melt(datanorm, id="namen", 
+                   measure=c("Skew","Kurtosis"), 
+                   variable.name="Factor", value.name="Loading")
+ggplot(loadings.1, aes(namen, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Loading Strength") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+
+
+
+
+
+colnames(oneav)
+#windspeedrate
+wsr<-oneav[,1:2]
+datawsr<- melt(wsr)
+#ggplot(datawsr,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+
+#temperature
+tempav<-oneav[,3:4]
+datatempav<- melt(tempav)
+#ggplot(datatempav,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+
+
+#various variable at 85hpa(1500m)
+x85<-oneav[,5:9]
+
+#various variable at 70hpa(3100m)
+x70<-oneav[,10:14]
+
+#various variable at 50hpa(5500m)
+x50<-oneav[,15:19]
+
+#temperature at various level
+temp<-oneav[,c(5,10,15)]
+datatemp<- melt(temp)
+ggplot(datatemp,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+#skew to the right, transformation for lambda<1
+
+#relative humidity
+rhum<-oneav[,c(6,11,16)]
+datarhum<- melt(rhum)
+ggplot(datarhum,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+#skewed to the right
+
+#Uwind
+ns<-oneav[,c(7,12,17)]
+datans<- melt(ns)
+ggplot(datans,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+
+
+#Vwind
+ew<-oneav[,c(8,13,18)]
+dataew<-melt(ew)
+ggplot(dataew,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+
+#geopotential height
+ht<-oneav[,c(9,14,19)]
+dataht<-melt(ht)
+ggplot(dataht,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+
+#combination of all plot
+#install.packages("devtools")
+library(devtools)
+#install_github("easyGgplot2", "kassambara")
+library(easyGgplot2)
+plot1<-ggplot(datatemp,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+plot2<-ggplot(datarhum,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+plot3<-ggplot(datans,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+plot4<-ggplot(dataew,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+plot5<-ggplot(dataht,aes(x=variable, y=value, fill=variable)) + geom_boxplot()
+ggplot2.multiplot(plot1,plot2,plot3,plot4,plot5, cols=1)
+
+names(oneav)
+attach(oneav)
+par(mfrow=c(2,2))
+hist(ki)
+hist(tt)
+hist(slp_)
+hist(slp)
+
+par(mfrow=c(1,1))
+hist(percp)
+```
+
+
+#something to point out
+```{r}
+summary(oneav)
+#the one that is not negative is relative humidity, geometric height, and slp
+#skew to the left, try trasnformation for squared and cube
+trrhum<-(rhum)^3
+uniNorm(trrhum, type = "SW")
+summary(rhum)
+
+#skew to the left, try transformation for squared and cube
+trht<-ht^3
+uniNorm(trht, type = "SW")
+#data contains negative
+```
+
+
+#correlation Matrix
+```{r}
+#code taken from http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
+#correlation matrix heatmap of the dataset
+cormat<-round(cor(oneav),2)
+cormat
+#reshape
+library(reshape2)
+melted_cormat<-melt(cormat)
+head(melted_cormat)
+attach(melted_cormat)
+melted_cormat<-melted_cormat[Var1,]
+library(ggplot2)
+ggplot(data=melted_cormat, aes(x=Var1, y=Var2, fill=value))+geom_tile()
+
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+reorder_cormat <- function(cormat){
+  # Use correlation between variables as distance
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
+
+cormat <- reorder_cormat(cormat)
+upper_tri <- get_upper_tri(cormat)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 7, hjust = 1))+
+  coord_fixed()
+
+ggheatmap + 
+  geom_text(aes(Var2, Var1, label = value), color = "black", size = 2) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks = element_blank(),
+    legend.justification = c(1, 0),
+    legend.position = c(0.6, 0.7),
+    legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                               title.position = "top", title.hjust = 0.5))
+```
+
+#Eigen values and variances explained
+```{r}
+fitpca <- princomp(oneav, cor=TRUE)
+summary(fitpca) # print variance accounted for 
+loadings(fitpca) # pc loadings 
+plot(fitpca,type="lines") # scree plot 
+biplot(fitpca)
+```
+
+```{r}
+fit <- principal(oneav, nfactors=4, rotate="varimax")
+plot(fit)
+plot(fit$values)
+fit$values
+
+#total variances
+sum(fit$values[1:4])/sum(fit$values)
+names(fit)
+
+name<-colnames(oneav)
+fitloading<-data.frame(fit$loadings[,1:4],name)
+fitloading
+library(corrplot)
+C<-cor(oneav)
+corrplot(C, method = "circle", order = "FPC")
+```
+#Visualization of the LOADINGS
+```{r}
+#visualization of all loadings
+loadings.m <- melt(fitloading, id="name", 
+                   measure=c("RC1","RC2","RC3","RC4"), 
+                   variable.name="Factor", value.name="Loading")
+ggplot(loadings.m, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Loading Strength") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+
+
+##################VISUALIZATION OF THE LOADINGS############################
+#Visualization of loading 1
+
+loadings.1 <- melt(fitloading, id="name", 
+                   measure=c("RC1"), 
+                   variable.name="Factor", value.name="Loading")
+ggplot(loadings.1, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Loading Strength") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+#Visualization of loading 2
+
+loadings.2 <- melt(fitloading, id="name", 
+                   measure=c("RC2"), 
+                   variable.name="Factor", value.name="Loading")
+ggplot(loadings.2, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Loading Strength") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+
+#Visualization of Loading 3
+loadings.3 <- melt(fitloading, id="name", 
+                   measure=c("RC3"), 
+                   variable.name="Factor", value.name="Loading")
+ggplot(loadings.3, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Loading Strength") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+#Visualization of Loading 4
+loadings.4 <- melt(fitloading, id="name", 
+                   measure=c("RC4"), 
+                   variable.name="Factor", value.name="Loading")
+ggplot(loadings.2, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Loading Strength") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+
+names(fit)
+fit$loadings
+
+
+#code taken from http://www.chrisbilder.com/multivariate/Section2/goblet_CA.r
+PCA.CA.plot<-function(data.set, cluster.results, numb.clust, plot.title, cor.use = TRUE, inches = 0.5) {
+  
+  clusters<-cutree(tree = cluster.results, k = numb.clust)
+  
+  #PC scores
+  pca.cor<-princomp(x = data.set, cor = cor.use, scores = FALSE)
+  pca.cor$scale<-apply(X = data.set, MARGIN = 2, FUN = sd)
+  score.cor<-predict(pca.cor, newdata = data.set)
+  
+  #Scatter plot of first two PCs
+  
+  par(pty = "s")
+  common.limits<-c(min(score.cor[,1:2]), max(score.cor[,1:2]))
+  plot(x = score.cor[,1], y = score.cor[,2], xlab = "PC #1", ylab = "PC #2",
+       main = paste("PCs with", plot.title, "and", numb.clust, "clusters"),
+       xlim = common.limits, ylim = common.limits, panel.first = grid(col = "lightgray", lty = "dotted"),
+       col = clusters, pch = clusters)
+  abline(h = 0)
+  abline(v = 0)
+  text(x = score.cor[,1], y = score.cor[,2]+0.2)
+  
+  #Bubble plot of first three PCs
+ 
+  par(pty = "s")
+  PC3.positive<-score.cor[,3] - min(score.cor[,3])  #Bubble needs to contain all values > 0
+  col.symbol<-ifelse(test = score.cor[,3]>0, yes = "red", no = "blue")
+  symbols(x = score.cor[,1], y = score.cor[,2], circles = PC3.positive,
+          xlab = "PC #1", ylab = "PC #2", main = paste("PCs with", plot.title, "and", numb.clust, "clusters"), inches = inches,
+          xlim = common.limits, ylim = common.limits, panel.first = grid(col = "lightgray", lty = "dotted"),
+          fg = col.symbol)
+  text(x = score.cor[,1], y = score.cor[,2], col = clusters)
+  abline(h = 0)
+  abline(v = 0)
+  
+  #3D plot - Note: I used common limits for all three dimensions here because the distance between points is important
+  plot3d(x = score.cor[,1], y = score.cor[,2], z = score.cor[,3], xlab = "PC #1", ylab = "PC #2",
+         zlab = "PC #3", type = "h", xlim = common.limits, ylim = common.limits, zlim = common.limits)
+  plot3d(x = score.cor[,1], y = score.cor[,2], z = score.cor[,3], add = TRUE, col = clusters, size = 6)
+  persp3d(x = common.limits, y = common.limits, z = matrix(data = c(0,0,0,0), nrow = 2, ncol = 2),
+          add = TRUE, col = "green") #Put a plane on the plot
+  grid3d(side = c("x", "y", "z"), col = "lightgray")
+  
+  invisible()
+}
+
+Z<-scale(oneav) 
+dist.mat<-dist(x = Z, method = "euclidean")
+clust.nn<-hclust(d = dist.mat, method = "single")
+PCA.CA.plot(data.set = oneav, cluster.results = clust.nn, numb.clust = 3,
+            plot.title = "nearest neighbor CA method")
+PCA.CA.plot(data.set = oneav, cluster.results = clust.nn, numb.clust = 6,
+            plot.title = "nearest neighbor CA method")
+
+
+##################################### Principal COmponent K-Means Clustering#############
+PCA.CA.plot2<-function(data.set, cluster.results, plot.title, cor.use = TRUE, inches = 0.5) {
+  
+  numb.clust<-length(cluster.results$size)
+  
+  #PC scores
+  pca.cor<-princomp(x = data.set, cor = cor.use, scores = FALSE)
+  pca.cor$scale<-apply(X = data.set, MARGIN = 2, FUN = sd)
+  score.cor<-predict(pca.cor, newdata = data.set)
+  
+  #Scatter plot of first two PCs
+  
+
+  common.limits<-c(min(score.cor[,1:2]), max(score.cor[,1:2]))
+  plot(x = score.cor[,1], y = score.cor[,2], xlab = "PC #1", ylab = "PC #2",
+       main = paste("PCs with", plot.title, "and", numb.clust, "clusters"),
+       xlim = common.limits, ylim = common.limits, panel.first = grid(col = "lightgray", lty = "dotted"),
+       col = cluster.results$cluster, pch = cluster.results$cluster)
+  abline(h = 0)
+  abline(v = 0)
+  text(x = score.cor[,1], y = score.cor[,2]+0.2)
+  
+  #Bubble plot of first three PCs
+ 
+
+  PC3.positive<-score.cor[,3] - min(score.cor[,3])  #Bubble needs to contain all values > 0
+  col.symbol<-ifelse(test = score.cor[,3]>0, yes = "red", no = "blue")
+  symbols(x = score.cor[,1], y = score.cor[,2], circles = PC3.positive,
+          xlab = "PC #1", ylab = "PC #2", main = paste("PCs with", plot.title, "and", numb.clust, "clusters"), inches = inches,
+          xlim = common.limits, ylim = common.limits, panel.first = grid(col = "lightgray", lty = "dotted"),
+          fg = col.symbol)
+  text(x = score.cor[,1], y = score.cor[,2], col = cluster.results$cluster)
+  abline(h = 0)
+  abline(v = 0)
+
+  #3D plot - Note: I used common limits for all three dimensions here because the distance between points is important
+  plot3d(x = score.cor[,1], y = score.cor[,2], z = score.cor[,3], xlab = "PC #1", ylab = "PC #2",
+         zlab = "PC #3", type = "h", xlim = common.limits, ylim = common.limits, zlim = common.limits)
+  plot3d(x = score.cor[,1], y = score.cor[,2], z = score.cor[,3], add = TRUE, col = cluster.results$cluster, size = 6)
+  persp3d(x = common.limits, y = common.limits, z = matrix(data = c(0,0,0,0), nrow = 2, ncol = 2),
+          add = TRUE, col = "green") #Put a plane on the plot
+  grid3d(side = c("x", "y", "z"), col = "lightgray")
+  
+  invisible()
+}
+# determine the number of clustering
+oneav.c <- kmeans(oneav, 3, nstart=10)
+ratios <- vector()
+for (k in 1:10) {
+  oneav.c <- kmeans(oneav, k, nstart=10)
+  ratios[k] <- oneav.c$betweenss / oneav.c$totss
+}
+plot(ratios)
+
+oneav.c<-kmeans(x = Z, centers = 4)
+PCA.CA.plot2(data.set = oneav, cluster.results = oneav.c,
+             plot.title = "K-means clustering")
+```
+```{r}
+
+colnames(oneav)
+fitresiduals<-data.frame(fit$residual,name)
+residuals.m <- melt(fitresiduals, id="name", 
+                   measure=c( "wsr_pk","wsr_av"  ,  "t_pk"    ,  "t_av"    ,  "t85"    ,   "rh85"), 
+                   variable.name="Factor", value.name="Loading")
+ggplot(residuals.m, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Residuals") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+residuals.m <- melt(fitresiduals, id="name", 
+                    measure=c("u85"     ,  "v85" ,      "ht85"    ,  "t70"   ,    "rh70"  ,    "u70"), 
+                    variable.name="Factor", value.name="Loading")
+ggplot(residuals.m, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Residuals") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+
+residuals.m <- melt(fitresiduals, id="name", 
+                    measure=c("v70"  ,     "ht70"   ,   "t50"   ,    "rh50"   ,   "u50"     ,  "v50"), 
+                    variable.name="Factor", value.name="Loading")
+ggplot(residuals.m, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Residuals") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+residuals.m <- melt(fitresiduals, id="name", 
+                    measure=c("ht50"   ,   "ki"    ,    "tt"    ,    "slp"   ,    "slp_"    ,  "percp"), 
+                    variable.name="Factor", value.name="Loading")
+ggplot(residuals.m, aes(name, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Residuals") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and0white theme with set font size
+
+
+```
